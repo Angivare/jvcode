@@ -162,8 +162,8 @@ var JVCode = {
 
 }
 
-function toJVCode(el) {
-  el = el.clone()
+function toJVCode(str) {
+  el = $('<div>' + str + '</div>')
   JVCode.preProcess(el)
   return JVCode.postProcess(JVCode.process(el[0]))
   return JVCode.process(el[0])
