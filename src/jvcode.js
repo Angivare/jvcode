@@ -154,7 +154,7 @@ var JVCode = {
     })
 
     JVCode.moon_walk(base, 'ol, ul', function(e) {
-      JVCode.prefix(e, '')
+      e.outerHTML = e.innerHTML
     })
 
     return base.html()
