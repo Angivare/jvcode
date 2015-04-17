@@ -1,3 +1,5 @@
+/* License: https://github.com/Angivare/jvcode/blob/master/LICENSE */
+
 function JVCode(s, a, b, block, raw) {
   this.s = s
   this.a = a
@@ -66,8 +68,9 @@ var JVCode = {
     }
     if(m.block) {
       if(this.next && this.next.nodeType == 1) {
-        var block = JVCode.what($(this.next)).block
-        b = block ? b + '\n\n' : b
+        var next = JVCode.what($(this.next))
+        if(next)
+          b = next.block ? b + '\n\n' : b
       }
     }
     this.r += a + this.process(this.e) + b
