@@ -1,54 +1,63 @@
 /* License: https://github.com/Angivare/jvcode/blob/master/LICENSE */
 
-function JVCode(s, a, b, block, raw) {
-  this.s = s
-  this.a = a
-  this.b = b
-  this.block = block ? true : false
-  this.raw = raw ? true : false
-}
+var JVCode = (function() {
 
-var JVCode = {
+  function Markup(s, a, b, block, raw) {
+    this.s = s
+    this.a = a
+    this.b = b
+    this.block = block ? true : false
+    this.raw = raw ? true : false
+  }
 
-  markup: [
-    new JVCode('p', '', '', true),
-    new JVCode('br', '', '\n'),
-    new JVCode('.pre-jv > .code-jv', '<code>', '</code>', true),
-    new JVCode('.code-jv', '<code>', '</code>'),
-    new JVCode('strong', "'''", "'''"),
-    new JVCode('em', "''", "''"),
-    new JVCode('u', '<u>', '</u>'),
-    new JVCode('s', '<s>', '</s>'),
-    new JVCode('ol', '<ol>', '</ol>', true, true),
-    new JVCode('ul', '<ul>', '</ul>', true, true),
-    new JVCode('li', '<li>', '</li>', false, true),
-    new JVCode('.bloc-spoil-jv', '', '', true),
-    new JVCode('.contenu-spoil', '<spoil>', '</spoil>'),
-    new JVCode('.blockquote-jv', '<q>', '</q>', true, true),
-  ],
+  var markup = [
+    new Markup('p', '', '', true),
+    new Markup('br', '', '\n'),
+    new Markup('.pre-jv > .code-jv', '<code>', '</code>', true),
+    new Markup('.code-jv', '<code>', '</code>'),
+    new Markup('strong', "'''", "'''"),
+    new Markup('em', "''", "''"),
+    new Markup('u', '<u>', '</u>'),
+    new Markup('s', '<s>', '</s>'),
+    new Markup('ol', '<ol>', '</ol>', true, true),
+    new Markup('ul', '<ul>', '</ul>', true, true),
+    new Markup('li', '<li>', '</li>', false, true),
+    new Markup('.bloc-spoil-jv', '', '', true),
+    new Markup('.contenu-spoil', '<spoil>', '</spoil>'),
+    new Markup('.blockquote-jv', '<q>', '</q>', true, true),
+  ]
 
-  what: function(e) {
-    for(var i = 0; i < JVCode.markup.length; i++)
-      if(e.is(JVCode.markup[i].s))
-        return JVCode.markup[i]
+  function what(e) {
+    for(var i = 0; i < markup.length; i++)
+      if(e.is(markup[i].s))
+        return markup[i]
     return null
-  },
+  }
 
-  he: function(str) {
+  function he(str) {
     return str.replace(/[\u00A0-\u9999<>\&]/g, function(i) {
       return '&#'+i.charCodeAt(0)+';'
     })
-  },
+  }
 
-  moon_walk: function(e, selector, f) {
+  function trim(str) {
+    return str.replace(/^(\r\n|\r|\n)+|(\r\n|\r|\n)+$/g, '')
+  }
+
+  function processText(str) {
+    return he(trim(str.replace(/[ \t]+/g, ' ')))
+  }
+
+  function moon_walk(e, selector, f) {
+    //post-order depth-first traversal
     var c = e.children()
     c.each(function() {
-      JVCode.moon_walk($(this), selector, f)
+      moon_walk($(this), selector, f)
       if($(this).is(selector)) f(this)
     })
-  },
+  }
 
-  prefix: function(e, str, firstline_space) {
+  function prefix(e, str, firstline_space) {
     var l = $.trim(e.innerHTML).split('\n'),
         r = ''
 
@@ -59,114 +68,110 @@ var JVCode = {
     }
 
     e.outerHTML = r ? r.slice(0, -1) : r
-  },
+  }
 
-  wrap: function(m) {
-    var a = m.a, b = m.b
-    if(!m.raw) {
-      a = JVCode.he(a)
-      b = JVCode.he(b)
-    }
-    if(m.block) {
-      if(this.next && this.next.nodeType == 1) {
-        var jvnext = JVCode.what($(this.next))
-        if(jvnext && jvnext.block)
-          b += '\n\n'
-      } else if(this.next && this.next.nodeType == 3) {
-        if(!$(this.next.parentNode).is('p'))
-          b += '\n\n'
+  var parser = {
+    wrap: function(m) {
+      var a = m.a, b = m.b
+      if(!m.raw) {
+        a = he(a)
+        b = he(b)
       }
-    }
-    this.ret += a + this.process(this.e) + b
-  },
-
-  trim: function(str) {
-    return str.replace(/^(\r\n|\r|\n)+|(\r\n|\r|\n)+$/g, '')
-  },
-
-  processText: function(str)  {
-    return JVCode.he(JVCode.trim(str.replace(/[ \t]+/g, ' ')))
-  },
-
-  preProcess: function(base) {
-    base.find('img').each(function() {
-      this.outerHTML = $(this).attr('data-code')
-    })
-    base.find('a').each(function() {
-      this.outerHTML = $(this).attr('href')
-    })
-  },
-
-  process: function(base) {
-    var c = base.childNodes,
-        ret = ''
-    for(var i = 0; i < c.length; i++) {
-      this.e = c[i], this.ret = ''
-
-      this.next = null
-      for(var j = i+1; j < c.length; j++)
-        if((c[j].nodeType == 1)
-        || (c[j].nodeType == 3 && JVCode.processText(c[j].nodeValue))
-        ) {
-          this.next = c[j]
-          break
-        }
-
-      var next = this.next
-
-      //text node
-      if(this.e.nodeType == 3) {
-        this.ret += JVCode.processText(this.e.nodeValue)
-
-        if(this.ret && this.next && !$(this.e.parentNode).is('p')) {
-          var jsnext = JVCode.what($(this.next))
-          if(jsnext && jsnext.block)
-            this.ret += '\n\n'
+      if(m.block) {
+        if(this.next && this.next.nodeType == 1) {
+          var next_markup = what($(this.next))
+          if(next_markup && next_markup.block)
+            b += '\n\n'
+        } else if(this.next && this.next.nodeType == 3) {
+          if(!$(this.next.parentNode).is('p'))
+            b += '\n\n'
         }
       }
+      return a + this.process(this.e) + b
+    },
 
-      //element node
-      var m = JVCode.what($(this.e))
-      if(m) this.wrap(m)
+    preProcess: function(base) {
+      base.find('img').each(function() {
+        this.outerHTML = $(this).attr('data-code')
+      })
+      base.find('a').each(function() {
+        this.outerHTML = $(this).attr('href')
+      })
+    },
 
-      //exception: list elements separation
-      if($(this.e).is('li') && next && $(next).is('li')) 
-        this.ret += '\n'
+    process: function(base) {
+      var c = base.childNodes,
+          lvl_ret = ''
+      for(var i = 0; i < c.length; i++) {
+        this.e = c[i]
+        var ret = ''
 
-      //node was ignored: keep parsing children
-      if(!this.ret)
-        this.ret = this.process(this.e)
+        this.next = null
+        for(var j = i+1; j < c.length; j++)
+          if((c[j].nodeType == 1)
+          || (c[j].nodeType == 3 && processText(c[j].nodeValue))
+          ) {
+            this.next = c[j]
+            break
+          }
 
-      ret += this.ret
-    }
+        var next = this.next
 
-    return ret
-  },
+        //text node
+        if(this.e.nodeType == 3) {
+          ret += processText(this.e.nodeValue)
 
-  postProcess: function(base) {
-    base = $('<div>' + base + '</div>')
+          if(ret && this.next && !$(this.e.parentNode).is('p')) {
+            var next_markup = what($(this.next))
+            if(next_markup && next_markup.block)
+              ret += '\n\n'
+          }
+        }
 
-    JVCode.moon_walk(base, 'q, li', function(e) {
-      if($(e).is('q')) 
-        JVCode.prefix(e, JVCode.he('> '))
-      else if($(e).is('li')) {
-        var p = e.parentNode,
-            s = $(p).is('ol') ? '#' : '*'
-        JVCode.prefix(e, s, true)
+        //element node
+        var m = what($(this.e))
+        if(m) ret += this.wrap(m)
+
+        //exception: list elements separation
+        if($(this.e).is('li') && next && $(next).is('li')) 
+          ret += '\n'
+
+        //node was ignored: keep parsing children
+        if(!ret)
+          ret = this.process(this.e)
+
+        lvl_ret += ret
       }
-    })
 
-    JVCode.moon_walk(base, 'ol, ul', function(e) {
-      e.outerHTML = e.innerHTML
-    })
+      return lvl_ret
+    },
 
-    return base.html()
-  },
+    postProcess: function(base) {
+      base = $('<div>' + base + '</div>')
 
-}
+      moon_walk(base, 'q, li', function(e) {
+        if($(e).is('q')) 
+          prefix(e, he('> '))
+        else if($(e).is('li')) {
+          var p = e.parentNode,
+              s = $(p).is('ol') ? '#' : '*'
+          prefix(e, s, true)
+        }
+      })
 
-function toJVCode(str) {
-  el = $('<div>' + str + '</div>')
-  JVCode.preProcess(el)
-  return $('<div>').html(JVCode.postProcess(JVCode.process(el[0]))).text()
-}
+      moon_walk(base, 'ol, ul', function(e) {
+        e.outerHTML = e.innerHTML
+      })
+
+      return base.html()
+    },
+  }
+
+  return {
+    toJVCode: function(str) {
+      el = $('<div>' + str + '</div>')
+      parser.preProcess(el)
+      return $('<div>').html(parser.postProcess(parser.process(el[0]))).text()
+    }
+  }
+}())
