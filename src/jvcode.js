@@ -22,7 +22,8 @@ var JVCode = {
     new JVCode('ol', '<ol>', '</ol>', true, true),
     new JVCode('ul', '<ul>', '</ul>', true, true),
     new JVCode('li', '<li>', '</li>', false, true),
-    new JVCode('.contenu-spoil', '<spoil>', '</spoil>', true),
+    new JVCode('.bloc-spoil-jv', '', '', true),
+    new JVCode('.contenu-spoil', '<spoil>', '</spoil>'),
     new JVCode('.blockquote-jv', '<q>', '</q>', true, true),
   ],
 
@@ -33,27 +34,27 @@ var JVCode = {
     return null
   },
 
-  he: function(s) {
-    return s.replace(/[\u00A0-\u9999<>\&]/g, function(i) {
+  he: function(str) {
+    return str.replace(/[\u00A0-\u9999<>\&]/g, function(i) {
       return '&#'+i.charCodeAt(0)+';'
     })
   },
 
-  moon_walk: function(e, s, f) {
+  moon_walk: function(e, selector, f) {
     var c = e.children()
     c.each(function() {
-      JVCode.moon_walk($(this), s, f)
-      if($(this).is(s)) f(this)
+      JVCode.moon_walk($(this), selector, f)
+      if($(this).is(selector)) f(this)
     })
   },
 
-  prefix: function(e, s, f_s) {
+  prefix: function(e, str, firstline_space) {
     var l = $.trim(e.innerHTML).split('\n'),
         r = ''
 
     for(var i = 0; i < l.length; i++) {
-      r += s
-      if(!i && f_s) r += ' '
+      r += str
+      if(!i && firstline_space) r += ' '
       r += l[i] + '\n'
     }
 
@@ -68,20 +69,23 @@ var JVCode = {
     }
     if(m.block) {
       if(this.next && this.next.nodeType == 1) {
-        var next = JVCode.what($(this.next))
-        if(next)
-          b = next.block ? b + '\n\n' : b
+        var jvnext = JVCode.what($(this.next))
+        if(jvnext && jvnext.block)
+          b += '\n\n'
+      } else if(this.next && this.next.nodeType == 3) {
+        if(!$(this.next.parentNode).is('p'))
+          b += '\n\n'
       }
     }
-    this.r += a + this.process(this.e) + b
+    this.ret += a + this.process(this.e) + b
   },
 
-  trim: function(s) {
-    return s.replace(/^(\r\n|\r|\n)+|(\r\n|\r|\n)+$/g, '')
+  trim: function(str) {
+    return str.replace(/^(\r\n|\r|\n)+|(\r\n|\r|\n)+$/g, '')
   },
 
-  processText: function(s)  {
-    return JVCode.he(JVCode.trim(s.replace(/[ \t]+/g, ' ')))
+  processText: function(str)  {
+    return JVCode.he(JVCode.trim(str.replace(/[ \t]+/g, ' ')))
   },
 
   preProcess: function(base) {
@@ -97,31 +101,28 @@ var JVCode = {
     var c = base.childNodes,
         ret = ''
     for(var i = 0; i < c.length; i++) {
-      this.e = c[i], this.r = ''
-
-      this.prev = null
-      for(var j = i-1; j >= 0; j--)
-        if(c[j].nodeType == 1) {
-          this.prev = c[j]
-          break
-        }
+      this.e = c[i], this.ret = ''
 
       this.next = null
       for(var j = i+1; j < c.length; j++)
-        if(c[j].nodeType == 1) {
+        if((c[j].nodeType == 1)
+        || (c[j].nodeType == 3 && JVCode.processText(c[j].nodeValue))
+        ) {
           this.next = c[j]
           break
         }
 
-      var prev = this.prev, next = this.next
+      var next = this.next
 
       //text node
       if(this.e.nodeType == 3) {
-        this.r += JVCode.processText(this.e.nodeValue)
+        this.ret += JVCode.processText(this.e.nodeValue)
 
-        //exception: orphan text node fix
-        if(this.r && this.next && $(this.next).is('ol, ul'))
-          this.r += '\n'
+        if(this.ret && this.next && !$(this.e.parentNode).is('p')) {
+          var jsnext = JVCode.what($(this.next))
+          if(jsnext && jsnext.block)
+            this.ret += '\n\n'
+        }
       }
 
       //element node
@@ -129,14 +130,14 @@ var JVCode = {
       if(m) this.wrap(m)
 
       //exception: list elements separation
-      if($(c[i]).is('li') && next && $(next).is('li')) 
-        this.r += '\n'
+      if($(this.e).is('li') && next && $(next).is('li')) 
+        this.ret += '\n'
 
       //node was ignored: keep parsing children
-      if(!this.r)
-        this.r = this.process(this.e)
+      if(!this.ret)
+        this.ret = this.process(this.e)
 
-      ret += this.r
+      ret += this.ret
     }
 
     return ret
@@ -146,7 +147,6 @@ var JVCode = {
     base = $('<div>' + base + '</div>')
 
     JVCode.moon_walk(base, 'q, li', function(e) {
-      console.log(e)
       if($(e).is('q')) 
         JVCode.prefix(e, JVCode.he('> '))
       else if($(e).is('li')) {

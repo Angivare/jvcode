@@ -42,8 +42,7 @@ $txt_js = isset($_POST['txt_js']) ? $_POST['txt_js'] : 0;
   $(document).ready(function() {
     var s = toJVCode($('#labase').html())
     $('body').append($('<textarea id="txt-post">' + s + '</textarea>'))
-    var e = $('<div>').html(s); s = e[0].childNodes[0].nodeValue
-    $.post('/tests.php', {txt_js: s}, function(d) {
+    $.post('fromJVCode.php', {txt_js: s}, function(d) {
       d = $(d).find('#rep').html()
       $('body').append($('<div id="post">' + d + '</div>'))
       if($('#labase').html() !== d)
