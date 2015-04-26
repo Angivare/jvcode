@@ -13,7 +13,7 @@ var JVCode = (function() {
   var markup = [
     new Markup('p', '', '', true),
     new Markup('br', '', '\n'),
-    new Markup('.pre-jv > .code-jv', '<code>', '</code>', true),
+    new Markup('.pre-jv', '', '', true),
     new Markup('.code-jv', '<code>', '</code>'),
     new Markup('strong', "'''", "'''"),
     new Markup('em', "''", "''"),
@@ -45,7 +45,7 @@ var JVCode = (function() {
   }
 
   function processText(str) {
-    return he(trim(str.replace(/[ \t]+/g, ' ')))
+    return he(trim(str))
   }
 
   function moon_walk(e, selector, f) {
