@@ -71,23 +71,23 @@ var JVCode = (function() {
   }
 
   var parser = {
-    wrap: function(m) {
+    wrap: function(m, el, next) {
       var a = m.a, b = m.b
       if(!m.raw) {
         a = he(a)
         b = he(b)
       }
       if(m.block) {
-        if(this.next && this.next.nodeType == 1) {
-          var next_markup = what($(this.next))
+        if(next && next.nodeType == 1) {
+          var next_markup = what($(next))
           if(next_markup && next_markup.block)
             b += '\n\n'
-        } else if(this.next && this.next.nodeType == 3) {
-          if(!$(this.next.parentNode).is('p'))
+        } else if(next && next.nodeType == 3) {
+          if(!$(next.parentNode).is('p'))
             b += '\n\n'
         }
       }
-      return a + this.process(this.e) + b
+      return a + this.process(el) + b
     },
 
     preProcess: function(base) {
@@ -103,42 +103,39 @@ var JVCode = (function() {
       var c = base.childNodes,
           lvl_ret = ''
       for(var i = 0; i < c.length; i++) {
-        this.e = c[i]
         var ret = ''
 
-        this.next = null
+        var next = null
         for(var j = i+1; j < c.length; j++)
           if((c[j].nodeType == 1)
           || (c[j].nodeType == 3 && processText(c[j].nodeValue))
           ) {
-            this.next = c[j]
+            next = c[j]
             break
           }
 
-        var next = this.next
-
         //text node
-        if(this.e.nodeType == 3) {
-          ret += processText(this.e.nodeValue)
+        if(c[i].nodeType == 3) {
+          ret += processText(c[i].nodeValue)
 
-          if(ret && this.next && !$(this.e.parentNode).is('p')) {
-            var next_markup = what($(this.next))
+          if(ret && next && !$(c[i].parentNode).is('p')) {
+            var next_markup = what($(next))
             if(next_markup && next_markup.block)
               ret += '\n\n'
           }
         }
 
         //element node
-        var m = what($(this.e))
-        if(m) ret += this.wrap(m)
+        var m = what($(c[i]))
+        if(m) ret += this.wrap(m, c[i], next)
 
         //exception: list elements separation
-        if($(this.e).is('li') && next && $(next).is('li')) 
+        if($(c[i]).is('li') && next && $(next).is('li'))
           ret += '\n'
 
         //node was ignored: keep parsing children
         if(!ret)
-          ret = this.process(this.e)
+          ret = this.process(c[i])
 
         lvl_ret += ret
       }
