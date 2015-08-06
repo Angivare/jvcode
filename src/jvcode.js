@@ -91,6 +91,12 @@ var JVCode = (function() {
     },
 
     preProcess: function(base) {
+      base.find('img.img-stickers').each(function() {
+        var src = $(this).attr('src').split('/'),
+            id  = src.pop(),
+            grp = src.pop()
+        this.outerHTML = '[[sticker:' + grp + '/' + id + ']]'
+      })
       base.find('img').each(function() {
         this.outerHTML = $(this).attr('data-code')
       })
